@@ -9,6 +9,7 @@ from .sources import (
     AWSSettingsSource,
     ParameterStoreSettingsSource,
     SecretsManagerSettingsSource,
+    SingleParameterStoreSettingsSource,
 )
 
 
@@ -63,6 +64,25 @@ class SecretsManagerBaseSettings(BaseSettings):
         return (
             init_settings,
             SecretsManagerSettingsSource(settings_cls),
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
+
+
+class SingleParameterStoreBaseSettings(BaseSettings):
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            SingleParameterStoreSettingsSource(settings_cls),
             env_settings,
             dotenv_settings,
             file_secret_settings,

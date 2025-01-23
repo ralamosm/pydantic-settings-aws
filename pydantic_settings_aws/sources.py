@@ -1,4 +1,5 @@
 from typing import Any, Dict, Tuple, Type
+import json
 
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
@@ -115,6 +116,57 @@ class SecretsManagerSettingsSource(PydanticBaseSettingsSource):
     def __init__(self, settings_cls: Type[BaseSettings]):
         super().__init__(settings_cls)
         self._json_content = aws.get_secrets_content(settings_cls)
+
+    def get_field_value(
+        self, field: FieldInfo, field_name: str
+    ) -> Tuple[Any, str, bool]:
+        field_value = self._json_content.get(field_name)
+        return field_value, field_name, False
+
+    def prepare_field_value(
+        self,
+        field_name: str,
+        field: FieldInfo,
+        value: Any,
+        value_is_complex: bool,
+    ) -> Any:
+        return value
+
+    def __call__(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+
+        for field_name, field in self.settings_cls.model_fields.items():
+            field_value, field_key, value_is_complex = self.get_field_value(
+                field, field_name
+            )
+            field_value = self.prepare_field_value(
+                field_name, field, field_value, value_is_complex
+            )
+            if field_value is not None:
+                d[field_key] = field_value
+
+        return d
+
+
+class SingleParameterStoreSettingsSource(PydanticBaseSettingsSource):
+    """Source class for loading settings from a single JSON-encoded parameter in AWS Parameter Store."""
+
+    def __init__(self, settings_cls: Type[BaseSettings]):
+        super().__init__(settings_cls)
+        # Get the SSM parameter name from the model config
+        ssm_parameter_name = settings_cls.model_config.get("ssm_parameter_name")
+        if not ssm_parameter_name:
+            logger.error("ssm_parameter_name not found in model_config")
+            self._json_content = {}
+            return
+
+        # Get the parameter value and parse it as JSON
+        json_str = aws.get_ssm_content(settings_cls, None, ssm_parameter_name)
+        try:
+            self._json_content = json.loads(json_str) if json_str else {}
+        except (json.JSONDecodeError, TypeError):
+            logger.error(f"Failed to parse SSM parameter as JSON: {json_str}")
+            self._json_content = {}
 
     def get_field_value(
         self, field: FieldInfo, field_name: str

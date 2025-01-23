@@ -100,6 +100,40 @@ class AWSSecretsSettings(SecretsManagerBaseSettings):
     password: str
 ```
 
+### 📄 With JSON Parameter Store
+
+If you have a single JSON-encoded parameter in Parameter Store, you can use `SingleParameterStoreBaseSettings`:
+
+```python
+class DatabaseSettings(SingleParameterStoreBaseSettings):
+    model_config = SettingsConfigDict(
+        ssm_parameter_name="/my/json/parameter",  # Parameter Store parameter name
+        aws_profile="dev"  # Optional AWS profile
+    )
+
+    username: str
+    password: str
+    host: str
+    port: int
+```
+
+Your Parameter Store parameter should contain a JSON string like:
+
+```json
+{
+    "username": "admin",
+    "password": "secret",
+    "host": "db.example.com",
+    "port": 5432
+}
+```
+
+The class will automatically:
+
+1. Fetch the parameter from Parameter Store
+2. Parse it as JSON
+3. Map the JSON fields to your class fields
+
 ## 👩🏼‍⚖️ License
 
 This project is licensed under the terms of the [MIT license.](LICENSE)

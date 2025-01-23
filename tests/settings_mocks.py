@@ -9,6 +9,7 @@ from pydantic_settings_aws import (
     AWSBaseSettings,
     ParameterStoreBaseSettings,
     SecretsManagerBaseSettings,
+    SingleParameterStoreBaseSettings,
 )
 
 from .boto3_mocks import ClientMock
@@ -125,3 +126,48 @@ class AWSWithUnknownService(AWSBaseSettings):
 
 class AWSWithNonDictMetadata(AWSBaseSettings):
     my_name: Annotated[Optional[str], "my irrelevant metadata"] = None
+
+# Mock data for single parameter store JSON content
+single_parameter_json_content = json.dumps({
+    "username": "json-user",
+    "password": "json-pass",
+    "db_name": "test-db",
+    "port": 5432
+})
+
+mock_single_parameter_store = ClientMock(ssm_value=single_parameter_json_content)
+
+class SingleParameterSettings(SingleParameterStoreBaseSettings):
+    model_config = SettingsConfigDict(
+        ssm_client=mock_single_parameter_store,
+        ssm_parameter_name="my/json/parameter"
+    )
+
+    username: str
+    password: str
+    db_name: str
+    port: int
+
+# Test invalid JSON content
+mock_invalid_json_parameter = ClientMock(ssm_value="invalid{json")
+
+class SingleParameterInvalidJSONSettings(SingleParameterStoreBaseSettings):
+    model_config = SettingsConfigDict(
+        ssm_client=mock_invalid_json_parameter,
+        ssm_parameter_name="my/json/parameter"
+    )
+
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+# Test empty/none parameter
+mock_empty_parameter = ClientMock(ssm_value=None)
+
+class SingleParameterEmptySettings(SingleParameterStoreBaseSettings):
+    model_config = SettingsConfigDict(
+        ssm_client=mock_empty_parameter,
+        ssm_parameter_name="my/json/parameter"
+    )
+
+    username: Optional[str] = None
+    password: Optional[str] = None

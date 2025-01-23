@@ -11,6 +11,9 @@ from .settings_mocks import (
     ParameterWithTwoSSMClientSettings,
     SecretsWithNestedContent,
     dict_secrets_with_username_and_password,
+    SingleParameterSettings,
+    SingleParameterInvalidJSONSettings,
+    SingleParameterEmptySettings,
 )
 
 
@@ -92,3 +95,29 @@ def test_aws_settings_should_ignore_value_if_metadata_is_not_a_dict():
     my_config = AWSWithNonDictMetadata()
     assert my_config is not None
     assert my_config.my_name is None
+
+
+def test_single_parameter_store_settings():
+    my_config = SingleParameterSettings()
+
+    assert my_config is not None
+    assert my_config.username == "json-user"
+    assert my_config.password == "json-pass"
+    assert my_config.db_name == "test-db"
+    assert my_config.port == 5432
+
+
+def test_single_parameter_store_with_invalid_json():
+    my_config = SingleParameterInvalidJSONSettings()
+
+    assert my_config is not None
+    assert my_config.username is None
+    assert my_config.password is None
+
+
+def test_single_parameter_store_with_empty_parameter():
+    my_config = SingleParameterEmptySettings()
+
+    assert my_config is not None
+    assert my_config.username is None
+    assert my_config.password is None
